@@ -9,7 +9,7 @@
         mc:Ignorable="d"
         Title="MCServerDeployer" Height="402.356" Width="677.766">
 
-    <Grid Margin="0,0,2,-164" RenderTransformOrigin="0.556,0.624">
+    <Grid Margin="0,0,-8,-21" RenderTransformOrigin="0.556,0.624">
         <Controls:MetroProgressBar HorizontalAlignment="Left" Margin="83,112,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label" Content="Server type" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label_Copy" Content="Server version" HorizontalAlignment="Left" Margin="10,63,0,0" VerticalAlignment="Top"/>
