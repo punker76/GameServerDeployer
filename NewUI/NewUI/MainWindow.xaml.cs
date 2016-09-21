@@ -8,9 +8,16 @@ using System.Net;
 using System.Threading;
 using System.Windows.Forms;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace NewUI
 {
+    public static class Globals
+    {
+        public static bool EulaDL = false;
+        public static bool ServerDL = false;
+        public static bool StartDL = false;
+    }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -20,7 +27,14 @@ namespace NewUI
         {
             InitializeComponent();
             serverType.Items.Add("Spigot");
+            serverRAM.Items.Add("1G");
             serverRAM.Items.Add("2G");
+            serverRAM.Items.Add("3G");
+            serverRAM.Items.Add("4G");
+            serverRAM.Items.Add("5G");
+            serverRAM.Items.Add("6G");
+            serverRAM.Items.Add("7G");
+            serverRAM.Items.Add("8G");
             serverVersion.Items.Add("1.8.8");
 
 
@@ -94,90 +108,95 @@ namespace NewUI
                         controller.SetProgress(0.2);
                         if (tcpOpen == false && udpOpen == false)
                         {
+                            await this.ShowMessageAsync("Ports info", "Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.", MessageDialogStyle.Affirmative);
                             controller.SetMessage("Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.");
                         }
                         if (tcpOpen == false && udpOpen == true)
                         {
+                            await this.ShowMessageAsync("Ports info", "The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.", MessageDialogStyle.Affirmative);
                             controller.SetMessage("The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.");
                         }
                         if (tcpOpen == true && udpOpen == false)
                         {
+                            await this.ShowMessageAsync("Ports info", "The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
                             controller.SetMessage("The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
                         }
                         if (tcpOpen == true && udpOpen == true)
                         {
+                            await this.ShowMessageAsync("Ports info", "All of the ports (UDP & TCP 25565) are opened! :)", MessageDialogStyle.Affirmative);
                             controller.SetMessage("All of the ports (UDP & TCP 25565) are opened! :)");
                         }
-                        Thread.Sleep(500);
 
 
                     }
 
-                if (this.serverType.SelectedItem.ToString() == "Spigot")
-                {
-                    if (this.serverVersion.SelectedItem.ToString() == "1.8.8")
+                    double MB = double.Parse(GetTotalMemoryInBytes().ToString());
+                    if (this.serverRAM.SelectedItem.ToString() == "2G")
                     {
-                        double MB = double.Parse(GetTotalMemoryInBytes().ToString());
-                        if (this.serverRAM.SelectedItem.ToString() == "2G")
+                        if (MB < 2000000)
                         {
-                            if (MB < 2000000)
+                            await this.ShowMessageAsync("Error: not enough RAM", "You don't have enough RAM to run this server", MessageDialogStyle.Affirmative);
+
+                            return;
+                        }
+                        else
+                        {
+                            controller.SetTitle("Downloading files");
+                            controller.SetMessage("Downloading server files: eula.txt");
+                            WebClient webClient = new WebClient();
+                            webClient.DownloadFileCompleted += new AsyncCompletedEventHandler(EulaDL);
+                            webClient.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/eula.txt"), fbd.SelectedPath.ToString() + "\\eula.txt");
+                            WebClient webClient2 = new WebClient();
+                            webClient2.DownloadFileCompleted += new AsyncCompletedEventHandler(ServerDL);
+                            controller.SetProgress(0.4);
+                            controller.SetMessage("Downloading server files: server.jar");
+                            webClient2.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/" + this.serverType.SelectedItem.ToString() + "/" + this.serverVersion.SelectedItem.ToString() + "/spigot.jar"), fbd.SelectedPath.ToString() + "\\server.jar");
+                            controller.SetProgress(0.6);
+                            WebClient webClient3 = new WebClient();
+                            webClient3.DownloadFileCompleted += new AsyncCompletedEventHandler(StartDL);
+                            controller.SetMessage("Downloading server files: start.cmd");
+                            webClient3.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/Start" + this.serverRAM.SelectedItem.ToString() + "/start.cmd"), fbd.SelectedPath.ToString() + "\\start.cmd");
+                            controller.SetProgress(0.8);
+                            controller.SetTitle("Starting server");
+                            controller.SetMessage("Starting the server for you :)");
+                            controller.SetProgress(0.9);
+
+                            if (Globals.EulaDL == true && Globals.ServerDL == true && Globals.StartDL == true)
                             {
-                                await this.ShowMessageAsync("Error: not enough RAM", "You don't have enough RAM to run this server", MessageDialogStyle.Affirmative);
-
-                                return;
+                                Process.Start(fbd.SelectedPath + "\\start.cmd");
+                                controller.SetTitle("Deployment succesful!");
+                                controller.SetMessage("Your server was succesfully deployed and started. If you want to stop it, enter 'stop' in the console, if you want to start it again, open the folder and launch start.cmd\nEnjoy! :D");
+                                controller.SetProgress(1);
+                                Thread.Sleep(300);
+                                await controller.CloseAsync();
                             }
-                            else
-                                {
-                                    controller.SetTitle("Downloading files");
-                                    controller.SetMessage("Downloading server files: eula.txt");
-                                    WebClient webClient = new WebClient();
-                                    webClient.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/eula.txt"), fbd.SelectedPath.ToString() + "\\eula.txt");
-                                    WebClient webClient2 = new WebClient();
-                                    controller.SetProgress(0.4);
-                                    controller.SetMessage("Downloading server files: spigot.jar");
-                                    webClient2.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/Spigot/1.8.8/spigot.jar"), fbd.SelectedPath.ToString() + "\\spigot.jar");
-                                    controller.SetProgress(0.6);
-                                    WebClient webClient3 = new WebClient();
-                                    controller.SetMessage("Downloading server files: start.cmd");
-                                    webClient3.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/Spigot/Start/2G/start.cmd"), fbd.SelectedPath.ToString() + "\\start.cmd");
-                                    controller.SetProgress(0.8);
-                                    controller.SetTitle("Starting server");
-                                    controller.SetMessage("Starting the server for you :)");
-                                    controller.SetProgress(0.9);
-                                    webClient3.Dispose();
-
-                                    Process.Start(fbd.SelectedPath + "\\start.cmd");
-                                    controller.SetTitle("Deployment succesful!");
-                                    controller.SetMessage("Your server was succesfully deployed and started. If you want to stop it, enter 'stop' in the console, if you want to start it again, open the folder and launch start.cmd\nEnjoy! :D");
-                                    controller.SetProgress(1);
-                                    Thread.Sleep(300);
-                                    await controller.CloseAsync();
-
-
-
-                                }
-
-                        }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 
                         }
+
                     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 }
+
+
             }
 
 
@@ -185,14 +204,26 @@ namespace NewUI
             {
                 await this.ShowMessageAsync("Error", "Please choose something!", MessageDialogStyle.Affirmative);
             }
-            
+
         }
         static ulong GetTotalMemoryInBytes()
         {
             return new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory;
         }
-    }
+        private void EulaDL(object sender, AsyncCompletedEventArgs e)
+        {
+            Globals.EulaDL = true;
+        }
+        private void ServerDL(object sender, AsyncCompletedEventArgs e)
+        {
+            Globals.ServerDL = true;
+        }
+        private void StartDL(object sender, AsyncCompletedEventArgs e)
+        {
+            Globals.StartDL = true;
+        }
 
+    }
 }
 
 
