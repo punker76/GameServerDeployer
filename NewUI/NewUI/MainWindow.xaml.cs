@@ -17,6 +17,7 @@ namespace NewUI
         public static bool EulaDL = false;
         public static bool ServerDL = false;
         public static bool StartDL = false;
+        public static string fbdSel;
     }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -109,38 +110,26 @@ namespace NewUI
                         if (tcpOpen == false && udpOpen == false)
                         {
                             await this.ShowMessageAsync("Ports info", "Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.", MessageDialogStyle.Affirmative);
-                            controller.SetMessage("Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.");
+                            //controller.SetMessage("Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.");
                         }
                         if (tcpOpen == false && udpOpen == true)
                         {
                             await this.ShowMessageAsync("Ports info", "The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.", MessageDialogStyle.Affirmative);
-                            controller.SetMessage("The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.");
+                            //controller.SetMessage("The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.");
                         }
                         if (tcpOpen == true && udpOpen == false)
                         {
                             await this.ShowMessageAsync("Ports info", "The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
-                            controller.SetMessage("The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
+                            //controller.SetMessage("The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
                         }
                         if (tcpOpen == true && udpOpen == true)
                         {
                             await this.ShowMessageAsync("Ports info", "All of the ports (UDP & TCP 25565) are opened! :)", MessageDialogStyle.Affirmative);
-                            controller.SetMessage("All of the ports (UDP & TCP 25565) are opened! :)");
+                            //controller.SetMessage("All of the ports (UDP & TCP 25565) are opened! :)");
                         }
 
 
                     }
-
-                    double MB = double.Parse(GetTotalMemoryInBytes().ToString());
-                    if (this.serverRAM.SelectedItem.ToString() == "2G")
-                    {
-                        if (MB < 2000000)
-                        {
-                            await this.ShowMessageAsync("Error: not enough RAM", "You don't have enough RAM to run this server", MessageDialogStyle.Affirmative);
-
-                            return;
-                        }
-                        else
-                        {
                             controller.SetTitle("Downloading files");
                             controller.SetMessage("Downloading server files: eula.txt");
                             WebClient webClient = new WebClient();
@@ -152,48 +141,22 @@ namespace NewUI
                             controller.SetMessage("Downloading server files: server.jar");
                             webClient2.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/" + this.serverType.SelectedItem.ToString() + "/" + this.serverVersion.SelectedItem.ToString() + "/spigot.jar"), fbd.SelectedPath.ToString() + "\\server.jar");
                             controller.SetProgress(0.6);
-                            WebClient webClient3 = new WebClient();
-                            webClient3.DownloadFileCompleted += new AsyncCompletedEventHandler(StartDL);
-                            controller.SetMessage("Downloading server files: start.cmd");
-                            webClient3.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/Start" + this.serverRAM.SelectedItem.ToString() + "/start.cmd"), fbd.SelectedPath.ToString() + "\\start.cmd");
+                            //WebClient webClient3 = new WebClient();
+                            //webClient3.DownloadFileCompleted += new AsyncCompletedEventHandler(StartDL);
+                            //controller.SetMessage("Downloading server files: start.cmd");
+                            //System.Windows.MessageBox.Show("test1" + this.serverRAM.SelectedItem.ToString() + "");
+                            //webClient3.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/Start" + this.serverRAM.SelectedItem.ToString() + "/start.cmd"), fbd.SelectedPath.ToString() + "\\start.cmd");
+                            //System.Windows.MessageBox.Show("test2" + this.serverRAM.SelectedItem.ToString() + "");
+                            //controller.SetProgress(0.8);
+                            controller.SetMessage("Copying files: start.cmd");
                             controller.SetProgress(0.8);
-                            controller.SetTitle("Starting server");
-                            controller.SetMessage("Starting the server for you :)");
-                            controller.SetProgress(0.9);
-
-                            if (Globals.EulaDL == true && Globals.ServerDL == true && Globals.StartDL == true)
-                            {
-                                Process.Start(fbd.SelectedPath + "\\start.cmd");
-                                controller.SetTitle("Deployment succesful!");
-                                controller.SetMessage("Your server was succesfully deployed and started. If you want to stop it, enter 'stop' in the console, if you want to start it again, open the folder and launch start.cmd\nEnjoy! :D");
-                                controller.SetProgress(1);
-                                Thread.Sleep(300);
-                                await controller.CloseAsync();
-                            }
-
-
-
-
-                        }
-
-                    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                            File.Copy(System.Windows.Forms.Application.StartupPath + "\\Start\\" + this.serverRAM.SelectedItem.ToString() + "\\start.cmd", fbd.SelectedPath.ToString() + "/start.cmd");
+                            
+                            Globals.StartDL = true;
+                            Globals.fbdSel = fbd.SelectedPath.ToString();
+                            MessageDialogResult mSR = await this.ShowMessageAsync("Please wait", "Please wait for the server main file to download.");
+                            
+                            await controller.CloseAsync();
                 }
 
 
@@ -203,6 +166,10 @@ namespace NewUI
             catch (System.NullReferenceException)
             {
                 await this.ShowMessageAsync("Error", "Please choose something!", MessageDialogStyle.Affirmative);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show("" + ex.ToString() + ".");
             }
 
         }
@@ -214,13 +181,15 @@ namespace NewUI
         {
             Globals.EulaDL = true;
         }
-        private void ServerDL(object sender, AsyncCompletedEventArgs e)
+        async private void ServerDL(object sender, AsyncCompletedEventArgs e)
         {
             Globals.ServerDL = true;
-        }
-        private void StartDL(object sender, AsyncCompletedEventArgs e)
-        {
-            Globals.StartDL = true;
+            if (Globals.EulaDL == true && Globals.ServerDL == true && Globals.StartDL == true)
+            {
+                Process.Start(Globals.fbdSel.ToString() + "\\start.cmd");
+                await this.ShowMessageAsync("Starting server", "Starting the server for you!");
+                await this.ShowMessageAsync("Deployment successful", "Your server was succesfully deployed and started. If you want to stop it, enter 'stop' in the console, if you want to start it again, open the folder and launch start.cmd\nEnjoy! :D");
+            }
         }
 
     }
