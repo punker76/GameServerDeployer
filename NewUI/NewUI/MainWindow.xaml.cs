@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows;
 using System.IO;
+using System.Drawing;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System.Net.Sockets;
@@ -41,6 +42,7 @@ namespace NewUI
 
 
 
+
         }
 
         private void button_Click(object sender, RoutedEventArgs e)
@@ -51,7 +53,6 @@ namespace NewUI
 
         private async void button_Click_1(object sender, RoutedEventArgs e)
         {
-
             bool fdbShown = false;
             MessageDialogResult msgRes = await this.ShowMessageAsync("EULA", "Do you accept the Minecraft EULA? \n(https://account.mojang.com/documents/minecraft_eula)", MessageDialogStyle.AffirmativeAndNegative);
             if (msgRes == MessageDialogResult.Negative)
@@ -102,6 +103,13 @@ namespace NewUI
                     FolderBrowserDialog fbd = new FolderBrowserDialog();
 
                     DialogResult result = fbd.ShowDialog();
+                    if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.Cancel || fbd.ShowDialog() == System.Windows.Forms.DialogResult.Abort)
+                    {
+                        await controller.CloseAsync();
+                        await this.ShowMessageAsync("Error", "You need to choose a path to install a server.", MessageDialogStyle.Affirmative);
+                        Thread.Sleep(2000);
+                        return;
+                    }
                     fdbShown = true;
                     if (fdbShown == true)
                     {
@@ -110,22 +118,22 @@ namespace NewUI
                         if (tcpOpen == false && udpOpen == false)
                         {
                             await this.ShowMessageAsync("Ports info", "Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.", MessageDialogStyle.Affirmative);
-                            //controller.SetMessage("Neither of the two ports (UDP & TCP 25565) are opened, you can always modify the port in the config or open them later.");
+                            
                         }
                         if (tcpOpen == false && udpOpen == true)
                         {
                             await this.ShowMessageAsync("Ports info", "The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.", MessageDialogStyle.Affirmative);
-                            //controller.SetMessage("The TCP port 25565 isn't opened, you can always modify the port in the config or open it later. The UDP port 25565 is opened.");
+                            
                         }
                         if (tcpOpen == true && udpOpen == false)
                         {
                             await this.ShowMessageAsync("Ports info", "The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
-                            //controller.SetMessage("The UDP port 25565 isn't opened, you can always modify the port in the config or open it later. The TCP port 25565 is opened.");
+                            
                         }
                         if (tcpOpen == true && udpOpen == true)
                         {
                             await this.ShowMessageAsync("Ports info", "All of the ports (UDP & TCP 25565) are opened! :)", MessageDialogStyle.Affirmative);
-                            //controller.SetMessage("All of the ports (UDP & TCP 25565) are opened! :)");
+                            
                         }
 
 
@@ -136,11 +144,12 @@ namespace NewUI
                             webClient.DownloadFileCompleted += new AsyncCompletedEventHandler(EulaDL);
                             webClient.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/eula.txt"), fbd.SelectedPath.ToString() + "\\eula.txt");
                             WebClient webClient2 = new WebClient();
+                            webClient.DownloadProgressChanged += new DownloadProgressChangedEventHandler(serverDLProg);
                             webClient2.DownloadFileCompleted += new AsyncCompletedEventHandler(ServerDL);
                             controller.SetProgress(0.4);
                             controller.SetMessage("Downloading server files: server.jar");
                             webClient2.DownloadFileAsync(new Uri("https://box.netly.co/ServerDeployer/" + this.serverType.SelectedItem.ToString() + "/" + this.serverVersion.SelectedItem.ToString() + "/spigot.jar"), fbd.SelectedPath.ToString() + "\\server.jar");
-                            controller.SetProgress(0.6);
+                            controller.SetProgress(0.5);
                             //WebClient webClient3 = new WebClient();
                             //webClient3.DownloadFileCompleted += new AsyncCompletedEventHandler(StartDL);
                             //controller.SetMessage("Downloading server files: start.cmd");
@@ -149,13 +158,11 @@ namespace NewUI
                             //System.Windows.MessageBox.Show("test2" + this.serverRAM.SelectedItem.ToString() + "");
                             //controller.SetProgress(0.8);
                             controller.SetMessage("Copying files: start.cmd");
-                            controller.SetProgress(0.8);
+                            controller.SetProgress(0.6);
                             File.Copy(System.Windows.Forms.Application.StartupPath + "\\Start\\" + this.serverRAM.SelectedItem.ToString() + "\\start.cmd", fbd.SelectedPath.ToString() + "/start.cmd");
                             
                             Globals.StartDL = true;
                             Globals.fbdSel = fbd.SelectedPath.ToString();
-                            MessageDialogResult mSR = await this.ShowMessageAsync("Please wait", "Please wait for the server main file to download.");
-                            
                             await controller.CloseAsync();
                 }
 
@@ -173,6 +180,19 @@ namespace NewUI
             }
 
         }
+        async private void serverDLProg(object sender, DownloadProgressChangedEventArgs e)
+        {
+            var controller = await this.ShowProgressAsync("Downloading server files", "Downloading files: server.jar");
+            controller.SetProgress(0.8);
+            if (e.ProgressPercentage >= 99)
+            {
+                controller.CloseAsync();
+            }
+            else
+            {
+
+            }
+        }
         static ulong GetTotalMemoryInBytes()
         {
             return new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory;
@@ -187,12 +207,17 @@ namespace NewUI
             if (Globals.EulaDL == true && Globals.ServerDL == true && Globals.StartDL == true)
             {
                 Process.Start(Globals.fbdSel.ToString() + "\\start.cmd");
-                await this.ShowMessageAsync("Starting server", "Starting the server for you!");
+                var controller = await this.ShowProgressAsync("Starting server", "Starting the server for you!");
+                controller.SetProgress(0.9);
+                string strCmdText = "/C cd " + Globals.fbdSel.ToString() + " & start.cmd";
+                Process.Start("CMD.exe", strCmdText);
                 await this.ShowMessageAsync("Deployment successful", "Your server was succesfully deployed and started. If you want to stop it, enter 'stop' in the console, if you want to start it again, open the folder and launch start.cmd\nEnjoy! :D");
+                await controller.CloseAsync();
             }
         }
-
+        
+        }
     }
-}
+
 
 
